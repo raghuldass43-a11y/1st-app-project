@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HostelSwap — Move-in/Move-out Marketplace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+  :root{
+    --paper: #ede4d3;
+    --paper-deep: #e2d6bf;
+    --card: #f7f2e7;
+    --ink: #3a2e23;
+    --ink-soft: #6b5c4d;
+    --tape: #c96a3e;
+    --tape-dark: #ad5731;
+    --green: #5c7a5e;
+    --green-dark: #43593f;
+    --red: #b0463c;
+    --blue: #4a6a8a;
+    --line: #d8c9ac;
+    --shadow: rgba(58,46,35,0.18);
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--paper);
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(58,46,35,0.05) 1px, transparent 0);
+    background-size: 18px 18px;
+    font-family: 'Inter', sans-serif;
+    color: var(--ink);
+    min-height: 100vh;
+  }
+  ::selection{ background: var(--tape); color: white; }
+  button{ font-family: inherit; cursor: pointer; }
+  input, textarea, select{ font-family: inherit; }
+  a{ color: inherit; }
+
+  .display{ font-family: 'Kalam', cursive; }
+  .mono{ font-family: 'IBM Plex Mono', monospace; }
+
+  /* ---------- App shell ---------- */
+  #root{ max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--paper); position: relative; box-shadow: 0 0 40px rgba(0,0,0,0.15); }
+
+  .topbar{
+    position: sticky; top:0; z-index: 40;
+    background: var(--paper);
+    border-bottom: 2px solid var(--ink);
+    padding: 14px 16px 10px;
+  }
+  .brand-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px; }
+  .brand{
+    font-family:'Kalam',cursive; font-weight:700; font-size: 24px; color: var(--ink);
+    display:flex; align-items:center; gap:8px;
+  }
+  .brand .crate{
+    width: 26px; height:22px; background: var(--tape); border-radius: 3px; position:relative;
+    box-shadow: inset 0 0 0 2px var(--ink);
+  }
+  .brand .crate::after{
+    content:""; position:absolute; inset: 4px; border-top: 2px solid var(--ink); border-bottom: none;
+  }
+  .icon-btn{
+    width:36px; height:36px; border-radius:50%; border:2px solid var(--ink); background: var(--card);
+    display:flex; align-items:center; justify-content:center; font-size:16px; position:relative;
+  }
+  .icon-btn .badge{
+    position:absolute; top:-4px; right:-4px; background: var(--tape); color:white; font-size:10px;
+    width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-weight:700; border: 1.5px solid var(--paper);
+  }
+  .search-wrap{ position:relative; }
+  .search-input{
+    width:100%; padding: 10px 14px 10px 38px; border-radius: 10px; border: 2px solid var(--ink);
+    background: var(--card); font-size: 14px; color: var(--ink); outline: none;
+  }
+  .search-input:focus{ border-color: var(--tape); }
+  .search-icon{ position:absolute; left:12px; top:50%; transform:translateY(-50%); opacity:0.6; font-size:14px; }
+
+  .chips-row{
+    display:flex; gap:8px; overflow-x:auto; padding: 12px 16px 4px; scrollbar-width:none;
+  }
+  .chips-row::-webkit-scrollbar{ display:none; }
+  .chip{
+    flex-shrink:0; padding: 7px 13px; border-radius: 20px; border: 2px solid var(--ink);
+    background: var(--card); font-size: 13px; font-weight:600; white-space:nowrap;
+    display:flex; align-items:center; gap:6px; transition: transform 0.08s ease;
+  }
+  .chip.active{ background: var(--ink); color: var(--paper); }
+  .chip:active{ transform: scale(0.95); }
+
+  .content{ padding: 8px 16px 100px; }
+
+  .section-label{
+    font-family:'Kalam',cursive; font-weight:700; font-size:18px; margin: 18px 0 10px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .section-label .tag{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:500; color: var(--ink-soft);
+    background: var(--card); border:1px solid var(--line); padding:2px 8px; border-radius: 4px;
+  }
+
+  /* ---------- Listing card (index-card / taped look) ---------- */
+  .grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .card{
+    background: var(--card);
+    border: 1.5px solid var(--ink);
+    border-radius: 4px;
+    position: relative;
+    box-shadow: 3px 4px 0 var(--shadow);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    overflow: hidden;
+  }
+  .card:active{ transform: translate(1px,2px); box-shadow: 1px 2px 0 var(--shadow); }
+  .tape-corner{
+    position:absolute; top:-6px; left:50%; transform: translateX(-50%) rotate(-3deg);
+    width: 54px; height: 20px; background: rgba(255,244,214,0.75);
+    border: 1px solid rgba(58,46,35,0.25);
+    z-index: 3;
+  }
+  .card-img{
+    width:100%; aspect-ratio: 1/1; object-fit: cover; display:block; background: var(--paper-deep);
+    border-bottom: 1.5px solid var(--ink);
+  }
+  .status-flag{
+    position:absolute; top:8px; right:8px; z-index:3;
+    font-family:'IBM Plex Mono',monospace; font-size:9.5px; font-weight:700; text-transform:uppercase;
+    padding: 3px 7px; border-radius: 3px; letter-spacing:0.03em;
+    color:white;
+  }
+  .status-Available{ background: var(--green); }
+  .status-Reserved{ background: var(--blue); }
+  .status-Sold{ background: var(--red); }
+  .status-Free{ background: var(--tape); }
+  .card-body{ padding: 8px 10px 10px; }
+  .card-title{ font-weight:700; font-size: 13.5px; line-height:1.25; margin-bottom:3px; }
+  .card-meta{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; color: var(--ink-soft); }
+  .card-price{ font-family:'Kalam',cursive; font-weight:700; font-size:17px; color: var(--tape-dark); margin-top:4px; }
+  .card-price.free{ color: var(--green-dark); }
+  .fav-btn{
+    position:absolute; bottom:8px; right:8px; z-index:3;
+    width:26px; height:26px; border-radius:50%; border:1.5px solid var(--ink); background: var(--card);
+    display:flex; align-items:center; justify-content:center; font-size:13px;
+  }
+
+  /* ---------- Bottom nav ---------- */
+  .bottomnav{
+    position: fixed; bottom:0; left:50%; transform: translateX(-50%);
+    width:100%; max-width:480px; background: var(--card); border-top: 2px solid var(--ink);
+    display:flex; justify-content:space-around; padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+    z-index: 50;
+  }
+  .navbtn{
+    background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:2px;
+    font-size: 10px; font-weight:600; color: var(--ink-soft); padding: 4px 8px; border-radius:8px;
+  }
+  .navbtn.active{ color: var(--ink); }
+  .navbtn .navicon{ font-size:19px; }
+  .navbtn.active .navicon{ transform: translateY(-2px); }
+
+  .fab{
+    position: fixed; bottom: 76px; left:50%; transform: translateX(calc(-50% + 190px));
+    width: 56px; height:56px; border-radius:50%; background: var(--tape); border: 2.5px solid var(--ink);
+    color:white; font-size: 26px; display:flex; align-items:center; justify-content:center;
+    box-shadow: 3px 4px 0 var(--shadow); z-index: 55;
+  }
+  .fab:active{ transform: translateX(calc(-50% + 190px)) translate(1px,2px); box-shadow:1px 2px 0 var(--shadow); }
+
+  /* ---------- Generic screen bits ---------- */
+  .screen-title{ font-family:'Kalam',cursive; font-weight:700; font-size:26px; margin: 6px 0 2px; }
+  .screen-sub{ color: var(--ink-soft); font-size: 13px; margin-bottom: 14px; }
+
+  .field{ margin-bottom: 14px; }
+  .field label{ display:block; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color: var(--ink-soft); margin-bottom:5px; }
+  .field input, .field textarea, .field select{
+    width:100%; padding: 10px 12px; border-radius: 8px; border: 2px solid var(--ink); background: var(--card);
+    font-size: 14px; color: var(--ink); outline:none;
+  }
+  .field textarea{ resize: vertical; min-height: 70px; }
+  .field input:focus, .field textarea:focus, .field select:focus{ border-color: var(--tape); }
+  .field-row{ display:flex; gap:10px; }
+  .field-row .field{ flex:1; }
+
+  .btn{
+    padding: 11px 18px; border-radius: 9px; border: 2px solid var(--ink); font-weight:700; font-size:14px;
+    background: var(--ink); color: var(--paper); width:100%; text-align:center;
+  }
+  .btn:active{ transform: translateY(1px); }
+  .btn.secondary{ background: var(--card); color: var(--ink); }
+  .btn.tape{ background: var(--tape); color:white; border-color: var(--tape-dark); }
+  .btn.danger{ background: var(--red); color:white; border-color: #7c2f28; }
+  .btn.block{ display:block; }
+  .btn.small{ padding: 7px 12px; font-size:12.5px; width:auto; }
+
+  .pill-select{ display:flex; gap:8px; flex-wrap:wrap; }
+  .pill-opt{
+    padding: 8px 14px; border-radius: 20px; border: 2px solid var(--ink); background: var(--card);
+    font-size: 13px; font-weight:600;
+  }
+  .pill-opt.active{ background: var(--ink); color: var(--paper); }
+
+  .upload-box{
+    border: 2px dashed var(--ink); border-radius: 10px; padding: 22px 10px; text-align:center;
+    color: var(--ink-soft); font-size: 13px; background: var(--card); margin-bottom: 8px;
+  }
+  .thumb-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 10px; }
+  .thumb{
+    width:56px; height:56px; border-radius:6px; border:1.5px solid var(--ink); object-fit:cover;
+    background: var(--paper-deep);
+  }
+
+  /* header w/ back */
+  .subhead{
+    display:flex; align-items:center; gap:10px; padding: 14px 16px 6px; position:sticky; top:0;
+    background: var(--paper); z-index: 30; border-bottom: 2px solid var(--ink);
+  }
+  .backbtn{
+    width:34px; height:34px; border-radius:50%; border:2px solid var(--ink); background: var(--card);
+    display:flex; align-items:center; justify-content:center; font-size:16px;
+  }
+  .subhead-title{ font-family:'Kalam',cursive; font-weight:700; font-size:19px; }
+
+  /* Detail screen */
+  .detail-hero{ width:100%; aspect-ratio: 1/1; object-fit:cover; background: var(--paper-deep); border-bottom: 2px solid var(--ink); }
+  .detail-body{ padding: 16px; }
+  .seller-row{
+    display:flex; align-items:center; gap:10px; padding: 10px; background: var(--card);
+    border: 1.5px solid var(--ink); border-radius: 10px; margin: 12px 0;
+  }
+  .avatar{
+    width: 38px; height:38px; border-radius:50%; background: var(--tape); color:white; font-weight:700;
+    display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;
+    font-family:'Kalam',cursive;
+  }
+  .stars{ color: var(--tape-dark); font-size:12px; }
+  .detail-actions{ display:flex; gap:10px; margin-top: 14px; }
+
+  .swap-banner{
+    background: rgba(92,122,94,0.12); border: 1.5px dashed var(--green-dark); border-radius:8px;
+    padding: 8px 10px; font-size:12.5px; color: var(--green-dark); font-weight:600; margin-top:10px;
+  }
+
+  /* Chat */
+  .chat-list-item{
+    display:flex; gap:10px; padding: 12px 4px; border-bottom: 1px solid var(--line); align-items:center;
+  }
+  .chat-preview{ flex:1; min-width:0; }
+  .chat-preview .name{ font-weight:700; font-size:13.5px; }
+  .chat-preview .msg{ font-size:12px; color: var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .chat-time{ font-size:10.5px; color: var(--ink-soft); font-family:'IBM Plex Mono',monospace; }
+
+  .chat-thread{ display:flex; flex-direction:column; gap:8px; padding: 14px 16px 90px; }
+  .bubble{
+    max-width: 75%; padding: 9px 12px; border-radius: 12px; font-size: 13.5px; line-height:1.4;
+    border: 1.5px solid var(--ink);
+  }
+  .bubble.me{ align-self:flex-end; background: var(--tape); color:white; border-color: var(--tape-dark); border-bottom-right-radius:3px; }
+  .bubble.them{ align-self:flex-start; background: var(--card); border-bottom-left-radius:3px; }
+  .bubble.system{
+    align-self:center; background:none; border: 1.5px dashed var(--ink-soft); color: var(--ink-soft);
+    font-size:11.5px; font-family:'IBM Plex Mono',monospace;
+  }
+  .chat-input-row{
+    position: fixed; bottom:0; left:50%; transform: translateX(-50%); width:100%; max-width:480px;
+    display:flex; gap:8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    background: var(--paper); border-top: 2px solid var(--ink); z-index: 50;
+  }
+  .chat-input-row input{
+    flex:1; padding: 10px 14px; border-radius: 20px; border: 2px solid var(--ink); background:var(--card); outline:none; font-size:13.5px;
+  }
+  .sendbtn{
+    width:40px; height:40px; border-radius:50%; background: var(--ink); color: var(--paper); border:none;
+    display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;
+  }
+
+  /* toast */
+  .toast{
+    position: fixed; bottom: 96px; left:50%; transform: translateX(-50%);
+    background: var(--ink); color: var(--paper); padding: 10px 18px; border-radius: 24px;
+    font-size: 13px; font-weight:600; z-index: 100; box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+    display:flex; align-items:center; gap:8px; max-width: 90%;
+  }
+
+  /* modal */
+  .modal-overlay{
+    position: fixed; inset:0; background: rgba(58,46,35,0.55); z-index: 90;
+    display:flex; align-items:flex-end; justify-content:center;
+  }
+  .modal-sheet{
+    width:100%; max-width:480px; background: var(--paper); border-radius: 18px 18px 0 0;
+    border: 2px solid var(--ink); border-bottom:none; padding: 18px 18px 28px; max-height: 85vh; overflow-y:auto;
+  }
+  .modal-handle{ width:40px; height:4px; background: var(--ink-soft); border-radius:2px; margin: 0 auto 14px; opacity:0.4; }
+
+  .empty-state{ text-align:center; padding: 50px 20px; color: var(--ink-soft); }
+  .empty-state .em{ font-size:38px; margin-bottom:10px; }
+
+  .toggle-row{ display:flex; align-items:center; justify-content:space-between; padding: 12px 0; border-bottom:1px solid var(--line); }
+  .switch{ width:42px; height:24px; border-radius:14px; border:2px solid var(--ink); background: var(--card); position:relative; }
+  .switch.on{ background: var(--green); }
+  .switch .knob{
+    width:16px; height:16px; border-radius:50%; background: var(--ink); position:absolute; top:2px; left:2px;
+    transition: left 0.15s ease;
+  }
+  .switch.on .knob{ left: 20px; background: white; }
+
+  .admin-row{
+    display:flex; align-items:center; gap:10px; padding: 10px; background: var(--card);
+    border:1.5px solid var(--ink); border-radius:8px; margin-bottom:8px;
+  }
+  .admin-row img{ width:44px; height:44px; border-radius:6px; object-fit:cover; flex-shrink:0; }
+  .admin-row .info{ flex:1; min-width:0; }
+  .admin-row .info .t{ font-weight:700; font-size:13px; }
+  .admin-row .info .s{ font-size:11px; color: var(--ink-soft); }
+
+  .rating-stars{ display:flex; gap:4px; font-size:26px; justify-content:center; margin: 14px 0; }
+  .star{ opacity:0.3; }
+  .star.filled{ opacity:1; }
+
+  .role-toggle{ display:flex; gap:8px; margin-bottom:18px; }
+  .role-toggle .pill-opt{ flex:1; text-align:center; }
+
+  ::-webkit-scrollbar{ width:0; height:0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useMemo, useRef } = React;
+
+/* ---------------- seed data ---------------- */
+const CATEGORIES = [
+  { key: "chair", label: "Chair", icon: "🪑" },
+  { key: "mattress", label: "Mattress", icon: "🛏️" },
+  { key: "table", label: "Study Table", icon: "📚" },
+  { key: "cupboard", label: "Cupboard", icon: "🗄️" },
+  { key: "mirror", label: "Mirror", icon: "🪞" },
+  { key: "fan", label: "Fan", icon: "🪟" },
+  { key: "lamp", label: "Lamp", icon: "💡" },
+  { key: "basket", label: "Laundry Basket", icon: "🧺" },
+  { key: "boxes", label: "Storage Boxes", icon: "📦" },
+  { key: "monitor", label: "Monitor", icon: "🖥️" },
+  { key: "extension", label: "Extension Board", icon: "🔌" },
+  { key: "induction", label: "Induction Stove", icon: "🍳" },
+  { key: "fridge", label: "Mini Fridge", icon: "🧊" },
+];
+const CAT_MAP = Object.fromEntries(CATEGORIES.map(c => [c.key, c]));
+
+const HOSTELS = ["Block A", "Block B", "Block C", "Block D — North Wing"];
+const CONDITIONS = ["New", "Like New", "Good", "Fair", "Well-loved"];
+
+const ME = { id: "u0", name: "You", hostel: "Block B", room: "214", rating: 4.6, avatar: "Y" };
+
+const USERS = [
+  { id: "u1", name: "Priya Nair", hostel: "Block A", room: "108", rating: 4.8, avatar: "P" },
+  { id: "u2", name: "Arjun Mehta", hostel: "Block B", room: "301", rating: 4.5, avatar: "A" },
+  { id: "u3", name: "Sana Iqbal", hostel: "Block C", room: "22", rating: 4.9, avatar: "S" },
+  { id: "u4", name: "Devika R.", hostel: "Block A", room: "45", rating: 4.2, avatar: "D" },
+  { id: "u5", name: "Ken Osei", hostel: "Block D — North Wing", room: "12", rating: 4.7, avatar: "K" },
+];
+
+const IMG = (seed, w=400) => `https://picsum.photos/seed/${seed}/${w}/${w}`;
+
+let LISTINGS = [
+  { id: "l1", sellerId: "u1", title: "Study Table, barely used", desc: "Compact wooden study table, one small scratch on the leg. Great for a single room.", price: 1200, category: "table", condition: "Good", hostel: "Block A", room: "108", status: "Available", images: [IMG("table1"), IMG("table1b")], swap: false, createdAt: Date.now()-3600e3*3 },
+  { id: "l2", sellerId: "u2", title: "Mini Fridge — 45L, works great", desc: "Moving out, fridge is 8 months old. Cools fast, no smell, includes original plug.", price: 3200, category: "fridge", condition: "Like New", hostel: "Block B", room: "301", status: "Available", images: [IMG("fridge1")], swap: false, createdAt: Date.now()-3600e3*6 },
+  { id: "l3", sellerId: "u3", title: "Desk Lamp — warm white", desc: "Adjustable arm, 3 brightness levels. Free to a good home, just come pick it up.", price: 0, category: "lamp", condition: "Fair", hostel: "Block C", room: "22", status: "Free", images: [IMG("lamp1")], swap: false, createdAt: Date.now()-3600e3*10 },
+  { id: "l4", sellerId: "u4", title: "Steel Cupboard, 2-door", desc: "Sturdy, small dent on the back panel (not visible against wall). Key included.", price: 2500, category: "cupboard", condition: "Good", hostel: "Block A", room: "45", status: "Reserved", images: [IMG("cupboard1")], swap: false, createdAt: Date.now()-3600e3*20 },
+  { id: "l5", sellerId: "u5", title: "24-inch Monitor", desc: "Full HD, HDMI + VGA. Selling because I upgraded. No dead pixels.", price: 4500, category: "monitor", condition: "Like New", hostel: "Block D — North Wing", room: "12", status: "Available", images: [IMG("monitor1")], swap: false, createdAt: Date.now()-3600e3*1 },
+  { id: "l6", sellerId: "u1", title: "Study Chair — will swap for a lamp", desc: "Comfortable cushioned chair. Would rather swap for a desk lamp than sell.", price: 0, category: "chair", condition: "Good", hostel: "Block A", room: "108", status: "Available", images: [IMG("chair1")], swap: true, createdAt: Date.now()-3600e3*30 },
+  { id: "l7", sellerId: "u2", title: "Single Mattress, 4-inch foam", desc: "Used one semester. Clean, no stains, comes with a spare cover.", price: 1800, category: "mattress", condition: "Good", hostel: "Block B", room: "301", status: "Available", images: [IMG("mattress1")], swap: false, createdAt: Date.now()-3600e3*15 },
+  { id: "l8", sellerId: "u3", title: "Extension Board, 6-socket", desc: "Surge protected, 2m cable. Barely used, moving to a single-plug room.", price: 350, category: "extension", condition: "Like New", hostel: "Block C", room: "22", status: "Available", images: [IMG("ext1")], swap: false, createdAt: Date.now()-3600e3*4 },
+  { id: "l9", sellerId: "u4", title: "Wall Mirror, medium", desc: "Frameless, no cracks. Great for a shared room.", price: 400, category: "mirror", condition: "Good", hostel: "Block A", room: "45", status: "Available", images: [IMG("mirror1")], swap: false, createdAt: Date.now()-3600e3*50 },
+  { id: "l10", sellerId: "u5", title: "3 Storage Boxes (set)", desc: "Stackable plastic boxes, great for end-of-semester packing. Giving away as a set.", price: 0, category: "boxes", condition: "Fair", hostel: "Block D — North Wing", room: "12", status: "Free", images: [IMG("boxes1")], swap: false, createdAt: Date.now()-3600e3*8 },
+  { id: "l11", sellerId: "u2", title: "Induction Stove, single burner", desc: "Check with your warden before buying — some hostels restrict these. Works perfectly.", price: 1500, category: "induction", condition: "Good", hostel: "Block B", room: "301", status: "Sold", images: [IMG("induction1")], swap: false, createdAt: Date.now()-3600e3*100 },
+  { id: "l12", sellerId: "u1", title: "Table Fan, oscillating", desc: "Quiet motor, 3 speeds. Selling because my new room has an AC.", price: 900, category: "fan", condition: "Good", hostel: "Block A", room: "108", status: "Available", images: [IMG("fan1")], swap: false, createdAt: Date.now()-3600e3*12 },
+  { id: "l13", sellerId: "u3", title: "Laundry Basket, foldable", desc: "Collapsible mesh basket, takes no space when flat.", price: 250, category: "basket", condition: "Like New", hostel: "Block C", room: "22", status: "Available", images: [IMG("basket1")], swap: false, createdAt: Date.now()-3600e3*2 },
+];
+
+let SEED_MESSAGES = {
+  "u1": [
+    { from: "u1", text: "Hey! Is the study table still available?", t: Date.now()-3600e3*2 },
+    { from: "me", text: "Yes it is — want to come see it?", t: Date.now()-3600e3*1.8 },
+    { from: "u1", text: "Sure, I'm in Block A too, can swing by this evening.", t: Date.now()-3600e3*1.5 },
+  ],
+  "u2": [
+    { from: "u2", text: "Would you take ₹3000 for the fridge?", t: Date.now()-3600e3*20 },
+  ],
+};
+
+const REPORT_REASONS = ["Spam or scam", "Fake or misleading listing", "Inappropriate content", "Already sold elsewhere", "Other"];
+
+function timeAgo(ts){
+  const mins = Math.floor((Date.now()-ts)/60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins/60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs/24)}d ago`;
+}
+function userById(id){ return id === "me" ? ME : USERS.find(u=>u.id===id); }
+function fmtPrice(l){
+  if (l.status === "Free" || l.price === 0) return "FREE";
+  return `₹${l.price.toLocaleString('en-IN')}`;
+}
+
+/* ---------------- small components ---------------- */
+function Toast({ text, onDone }){
+  useEffect(()=>{ const t = setTimeout(onDone, 2200); return ()=>clearTimeout(t); },[]);
+  return <div className="toast">✅ {text}</div>;
+}
+
+function StatusFlag({ status }){
+  return <div className={`status-flag status-${status}`}>{status}</div>;
+}
+
+function ListingCard({ listing, isFav, onOpen, onToggleFav }){
+  const cat = CAT_MAP[listing.category];
+  return (
+    <div className="card" onClick={()=>onOpen(listing)}>
+      <div className="tape-corner"></div>
+      <StatusFlag status={listing.status} />
+      <img className="card-img" src={listing.images[0]} alt={listing.title} />
+      <button className="fav-btn" onClick={(e)=>{e.stopPropagation(); onToggleFav(listing.id);}}>
+        {isFav ? "❤️" : "🤍"}
+      </button>
+      <div className="card-body">
+        <div className="card-title">{cat.icon} {listing.title}</div>
+        <div className="card-meta">{listing.hostel} · {listing.condition}</div>
+        <div className={`card-price ${listing.status==='Free'?'free':''}`}>{fmtPrice(listing)}{listing.swap ? " · swap" : ""}</div>
+      </div>
+    </div>
+  );
+}
+
+function Header({ title, onBack, right }){
+  return (
+    <div className="subhead">
+      {onBack && <button className="backbtn" onClick={onBack}>←</button>}
+      <div className="subhead-title" style={{flex:1}}>{title}</div>
+      {right}
+    </div>
+  );
+}
+
+/* ---------------- screens ---------------- */
+function HomeScreen({ listings, favs, onOpen, onToggleFav, activeCat, setActiveCat, query, setQuery, onOpenFilters, onSell }){
+  const recommended = listings.filter(l=>l.status==="Available").slice(0,4);
+  const latest = [...listings].sort((a,b)=>b.createdAt-a.createdAt);
+  const filtered = latest.filter(l=>{
+    const matchCat = activeCat === "all" || l.category === activeCat;
+    const matchQ = !query || l.title.toLowerCase().includes(query.toLowerCase());
+    return matchCat && matchQ;
+  });
+
+  return (
+    <div>
+      <div className="topbar">
+        <div className="brand-row">
+          <div className="brand"><span className="crate"></span>HostelSwap</div>
+          <div style={{display:'flex', gap:8}}>
+            <button className="icon-btn" onClick={onOpenFilters}>⚙️</button>
+          </div>
+        </div>
+        <div className="search-wrap">
+          <span className="search-icon">🔍</span>
+          <input className="search-input" placeholder="Search chairs, mattress, fridge…"
+                 value={query} onChange={e=>setQuery(e.target.value)} />
+        </div>
+      </div>
+
+      <div className="chips-row">
+        <button className={`chip ${activeCat==='all'?'active':''}`} onClick={()=>setActiveCat('all')}>All</button>
+        {CATEGORIES.map(c=>(
+          <button key={c.key} className={`chip ${activeCat===c.key?'active':''}`} onClick={()=>setActiveCat(c.key)}>
+            {c.icon} {c.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="content">
+        {activeCat==='all' && !query && (
+          <>
+            <div className="section-label">📦 Recommended for you <span className="tag">Block B nearby</span></div>
+            <div className="grid">
+              {recommended.map(l=> <ListingCard key={l.id} listing={l} isFav={favs.includes(l.id)} onOpen={onOpen} onToggleFav={onToggleFav} />)}
+            </div>
+          </>
+        )}
+
+        <div className="section-label">🆕 Latest listings <span className="tag">{filtered.length} items</span></div>
+        {filtered.length === 0 ? (
+          <div className="empty-state">
+            <div className="em">📭</div>
+            No items match that search yet.<br/>Try another category or check back soon.
+          </div>
+        ) : (
+          <div className="grid">
+            {filtered.map(l=> <ListingCard key={l.id} listing={l} isFav={favs.includes(l.id)} onOpen={onOpen} onToggleFav={onToggleFav} />)}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FiltersModal({ current, onApply, onClose }){
+  const [f, setF] = useState(current);
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+        <div className="modal-handle"></div>
+        <div className="screen-title">Filter listings</div>
+        <div className="screen-sub">Narrow down what shows up on your home feed.</div>
+
+        <div className="field">
+          <label>Hostel block</label>
+          <select value={f.hostel} onChange={e=>setF({...f, hostel:e.target.value})}>
+            <option value="">Any block</option>
+            {HOSTELS.map(h=><option key={h} value={h}>{h}</option>)}
+          </select>
+        </div>
+        <div className="field">
+          <label>Condition</label>
+          <div className="pill-select">
+            {CONDITIONS.map(c=>(
+              <button key={c} className={`pill-opt ${f.condition===c?'active':''}`}
+                onClick={()=>setF({...f, condition: f.condition===c ? "" : c})}>{c}</button>
+            ))}
+          </div>
+        </div>
+        <div className="field-row">
+          <div className="field">
+            <label>Min price ₹</label>
+            <input type="number" value={f.min} onChange={e=>setF({...f, min:e.target.value})} placeholder="0" />
+          </div>
+          <div className="field">
+            <label>Max price ₹</label>
+            <input type="number" value={f.max} onChange={e=>setF({...f, max:e.target.value})} placeholder="5000" />
+          </div>
+        </div>
+        <div className="field">
+          <label>Availability</label>
+          <div className="pill-select">
+            {["Available","Reserved","Sold","Free"].map(s=>(
+              <button key={s} className={`pill-opt ${f.status===s?'active':''}`}
+                onClick={()=>setF({...f, status: f.status===s ? "" : s})}>{s}</button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{display:'flex', gap:10, marginTop:16}}>
+          <button className="btn secondary" onClick={()=>{ setF({hostel:"",condition:"",min:"",max:"",status:""}); }}>Clear</button>
+          <button className="btn tape" onClick={()=>onApply(f)}>Apply filters</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailScreen({ listing, favs, onToggleFav, onBack, onMessage, onMarkSold, onReport, isMine }){
+  const seller = userById(listing.sellerId);
+  const cat = CAT_MAP[listing.category];
+  const [imgIdx, setImgIdx] = useState(0);
+  return (
+    <div>
+      <Header title="Listing" onBack={onBack} right={
+        <button className="icon-btn" onClick={()=>onReport(listing)}>🚩</button>
+      } />
+      <div style={{position:'relative'}}>
+        <StatusFlag status={listing.status} />
+        <img className="detail-hero" src={listing.images[imgIdx]} alt={listing.title} />
+      </div>
+      {listing.images.length > 1 && (
+        <div style={{display:'flex', gap:6, padding:'8px 16px'}}>
+          {listing.images.map((im,i)=>(
+            <img key={i} src={im} onClick={()=>setImgIdx(i)}
+              style={{width:44,height:44,borderRadius:6,objectFit:'cover',border: i===imgIdx? '2px solid var(--tape)':'1.5px solid var(--ink)', cursor:'pointer'}} />
+          ))}
+        </div>
+      )}
+      <div className="detail-body">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+          <div className="screen-title" style={{marginTop:0}}>{cat.icon} {listing.title}</div>
+          <button className="fav-btn" style={{position:'static'}} onClick={()=>onToggleFav(listing.id)}>
+            {favs.includes(listing.id) ? "❤️" : "🤍"}
+          </button>
+        </div>
+        <div className={`card-price ${listing.status==='Free'?'free':''}`} style={{fontSize:26}}>{fmtPrice(listing)}</div>
+        {listing.swap && <div className="swap-banner">🔄 Seller is open to swapping this for another item instead of selling.</div>}
+
+        <div className="card-meta" style={{margin:'12px 0 4px', fontSize:12}}>
+          {listing.hostel}{listing.room ? ` · Room ${listing.room}` : ""} · {listing.condition} · Listed {timeAgo(listing.createdAt)}
+        </div>
+
+        <p style={{fontSize:14, lineHeight:1.5, marginTop:14}}>{listing.desc}</p>
+
+        <div className="seller-row">
+          <div className="avatar">{seller.avatar}</div>
+          <div style={{flex:1}}>
+            <div style={{fontWeight:700, fontSize:13.5}}>{seller.name}</div>
+            <div className="stars">{"★".repeat(Math.round(seller.rating))}{"☆".repeat(5-Math.round(seller.rating))} {seller.rating}</div>
+          </div>
+          <div className="mono" style={{fontSize:11, color:'var(--ink-soft)', textAlign:'right'}}>{seller.hostel}<br/>Rm {seller.room}</div>
+        </div>
+
+        <div className="detail-actions">
+          {isMine ? (
+            <>
+              {listing.status !== "Sold" && <button className="btn tape" onClick={()=>onMarkSold(listing.id)}>Mark as sold</button>}
+              {listing.status === "Sold" && <div className="btn secondary" style={{opacity:0.7}}>Already marked sold</div>}
+            </>
+          ) : (
+            <>
+              <button className="btn secondary" onClick={()=>onMessage(seller.id, `Hi! Is "${listing.title}" still available?`)}>💬 Chat</button>
+              <button className="btn tape" onClick={()=>onMessage(seller.id, `Hi, I'd like to reserve "${listing.title}".`)}>Reserve</button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SellScreen({ onPublish, onBack }){
+  const [images, setImages] = useState([]);
+  const [title, setTitle] = useState("");
+  const [desc, setDesc] = useState("");
+  const [price, setPrice] = useState("");
+  const [category, setCategory] = useState(CATEGORIES[0].key);
+  const [condition, setCondition] = useState(CONDITIONS[1]);
+  const [hostel, setHostel] = useState(ME.hostel);
+  const [room, setRoom] = useState(ME.room);
+  const [contact, setContact] = useState("chat");
+  const [isFree, setIsFree] = useState(false);
+  const [isSwap, setIsSwap] = useState(false);
+  const [suggested, setSuggested] = useState(null);
+
+  const addFakeImage = () => {
+    setImages([...images, IMG("new"+Math.floor(Math.random()*9999))]);
+  };
+
+  const suggestPrice = () => {
+    const similar = LISTINGS.filter(l=>l.category===category && l.price>0);
+    if (similar.length === 0) { setSuggested(null); return; }
+    const avg = Math.round(similar.reduce((s,l)=>s+l.price,0)/similar.length);
+    setSuggested(avg);
+  };
+
+  const generateDesc = () => {
+    const cat = CAT_MAP[category];
+    setDesc(`${cat.label} in ${condition.toLowerCase()} condition. Perfect for a hostel room, pickup available from ${hostel}${room?`, room ${room}`:""}. Message for more photos or details.`);
+  };
+
+  const canPublish = title.trim() && images.length>0 && (isFree || isSwap || price !== "");
+
+  return (
+    <div>
+      <Header title="Sell an item" onBack={onBack} />
+      <div className="content" style={{paddingTop:14}}>
+        <div className="field">
+          <label>Photos</label>
+          <div className="thumb-row">
+            {images.map((im,i)=><img key={i} className="thumb" src={im} />)}
+          </div>
+          <div className="upload-box" onClick={addFakeImage} style={{cursor:'pointer'}}>
+            📸 Tap to add a photo ({images.length} added)
+          </div>
+          {images.length>0 && (
+            <button className="btn small secondary" onClick={generateDesc}>✨ AI-suggest description from photos</button>
+          )}
+        </div>
+
+        <div className="field">
+          <label>Title</label>
+          <input placeholder="e.g. Study Table, barely used" value={title} onChange={e=>setTitle(e.target.value)} />
+        </div>
+
+        <div className="field">
+          <label>Description</label>
+          <textarea placeholder="Condition, pickup details, anything a buyer should know…" value={desc} onChange={e=>setDesc(e.target.value)} />
+        </div>
+
+        <div className="field">
+          <label>Category</label>
+          <div className="pill-select">
+            {CATEGORIES.map(c=>(
+              <button key={c.key} className={`pill-opt ${category===c.key?'active':''}`} onClick={()=>setCategory(c.key)}>{c.icon} {c.label}</button>
+            ))}
+          </div>
+        </div>
+
+        <div className="field">
+          <label>Condition</label>
+          <div className="pill-select">
+            {CONDITIONS.map(c=>(
+              <button key={c} className={`pill-opt ${condition===c?'active':''}`} onClick={()=>setCondition(c)}>{c}</button>
+            ))}
+          </div>
+        </div>
+
+        <div className="toggle-row">
+          <div>
+            <div style={{fontWeight:600, fontSize:13.5}}>List as free donation</div>
+            <div style={{fontSize:11.5, color:'var(--ink-soft)'}}>Shows up in the Free Items section</div>
+          </div>
+          <div className={`switch ${isFree?'on':''}`} onClick={()=>{setIsFree(!isFree); if(!isFree) setIsSwap(false);}}><div className="knob"></div></div>
+        </div>
+        <div className="toggle-row">
+          <div>
+            <div style={{fontWeight:600, fontSize:13.5}}>Open to swapping</div>
+            <div style={{fontSize:11.5, color:'var(--ink-soft)'}}>Trade instead of selling for cash</div>
+          </div>
+          <div className={`switch ${isSwap?'on':''}`} onClick={()=>{setIsSwap(!isSwap); if(!isSwap) setIsFree(false);}}><div className="knob"></div></div>
+        </div>
+
+        {!isFree && (
+          <div className="field" style={{marginTop:14}}>
+            <label>Price (₹)</label>
+            <input type="number" placeholder="0" value={price} onChange={e=>setPrice(e.target.value)} disabled={isSwap} />
+            <button className="btn small secondary" style={{marginTop:8}} onClick={suggestPrice}>💡 Suggest a price</button>
+            {suggested !== null && (
+              <div className="card-meta" style={{marginTop:6}}>
+                Similar {CAT_MAP[category].label.toLowerCase()} items average <b>₹{suggested}</b>.
+                {" "}<a onClick={()=>setPrice(String(suggested))} style={{color:'var(--tape-dark)', fontWeight:700, cursor:'pointer'}}>Use this</a>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="field-row">
+          <div className="field">
+            <label>Hostel</label>
+            <select value={hostel} onChange={e=>setHostel(e.target.value)}>
+              {HOSTELS.map(h=><option key={h} value={h}>{h}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label>Room (optional)</label>
+            <input value={room} onChange={e=>setRoom(e.target.value)} placeholder="e.g. 214" />
+          </div>
+        </div>
+
+        <div className="field">
+          <label>Preferred contact method</label>
+          <div className="pill-select">
+            {[["chat","In-app chat"], ["email","College email"]].map(([k,label])=>(
+              <button key={k} className={`pill-opt ${contact===k?'active':''}`} onClick={()=>setContact(k)}>{label}</button>
+            ))}
+          </div>
+        </div>
+
+        <button className="btn tape block" disabled={!canPublish} style={{opacity: canPublish?1:0.5, marginTop:10}}
+          onClick={()=>onPublish({ title, desc: desc || `${CAT_MAP[category].label}, ${condition.toLowerCase()} condition.`, price: isFree||isSwap?0:Number(price), category, condition, hostel, room, images, swap: isSwap, status: isFree?"Free":"Available" })}>
+          {canPublish ? "Publish listing" : "Add a title and photo to continue"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function WishlistScreen({ listings, favs, onOpen, onToggleFav }){
+  const items = listings.filter(l=>favs.includes(l.id));
+  return (
+    <div>
+      <Header title="Wishlist" />
+      <div className="content" style={{paddingTop:14}}>
+        {items.length === 0 ? (
+          <div className="empty-state">
+            <div className="em">🤍</div>
+            Nothing saved yet.<br/>Tap the heart on any listing to save it here.
+          </div>
+        ) : (
+          <div className="grid">
+            {items.map(l=><ListingCard key={l.id} listing={l} isFav={true} onOpen={onOpen} onToggleFav={onToggleFav} />)}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ChatListScreen({ threads, onOpenThread }){
+  return (
+    <div>
+      <Header title="Messages" />
+      <div className="content" style={{paddingTop:6}}>
+        {threads.length === 0 ? (
+          <div className="empty-state"><div className="em">💬</div>No conversations yet.<br/>Message a seller to get started.</div>
+        ) : threads.map(t=>{
+          const u = userById(t.userId);
+          const last = t.messages[t.messages.length-1];
+          return (
+            <div key={t.userId} className="chat-list-item" onClick={()=>onOpenThread(t.userId)}>
+              <div className="avatar">{u.avatar}</div>
+              <div className="chat-preview">
+                <div className="name">{u.name}</div>
+                <div className="msg">{last.from==='me' ? 'You: ' : ''}{last.text}</div>
+              </div>
+              <div className="chat-time">{timeAgo(last.t)}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ChatThreadScreen({ userId, messages, onBack, onSend }){
+  const [text, setText] = useState("");
+  const u = userById(userId);
+  const endRef = useRef(null);
+  useEffect(()=>{ endRef.current && endRef.current.scrollIntoView({behavior:'smooth'}); }, [messages.length]);
+
+  return (
+    <div>
+      <Header title={u.name} onBack={onBack} right={
+        <button className="icon-btn" onClick={()=>onSend(userId, "📍 Shared my hostel block location.", true)}>📍</button>
+      } />
+      <div className="chat-thread">
+        <div className="bubble system">You're chatting about a listing near {u.hostel}</div>
+        {messages.map((m,i)=>(
+          <div key={i} className={`bubble ${m.from==='me' ? 'me' : (m.system ? 'system':'them')}`}>{m.text}</div>
+        ))}
+        <div ref={endRef}></div>
+      </div>
+      <div className="chat-input-row">
+        <input placeholder="Type a message…" value={text} onChange={e=>setText(e.target.value)}
+          onKeyDown={e=>{ if(e.key==='Enter' && text.trim()){ onSend(userId, text.trim()); setText(""); } }} />
+        <button className="sendbtn" onClick={()=>{ if(text.trim()){ onSend(userId, text.trim()); setText(""); } }}>➤</button>
+      </div>
+    </div>
+  );
+}
+
+function ReportModal({ listing, onClose, onSubmit }){
+  const [reason, setReason] = useState(REPORT_REASONS[0]);
+  const [note, setNote] = useState("");
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+        <div className="modal-handle"></div>
+        <div className="screen-title">🚩 Report listing</div>
+        <div className="screen-sub">Reporting "{listing.title}". Our admins review every report.</div>
+        <div className="field">
+          <label>Reason</label>
+          <div className="pill-select">
+            {REPORT_REASONS.map(r=>(
+              <button key={r} className={`pill-opt ${reason===r?'active':''}`} onClick={()=>setReason(r)}>{r}</button>
+            ))}
+          </div>
+        </div>
+        <div className="field">
+          <label>Additional details (optional)</label>
+          <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Anything else admins should know…" />
+        </div>
+        <button className="btn danger block" onClick={()=>onSubmit(listing, reason, note)}>Submit report</button>
+      </div>
+    </div>
+  );
+}
+
+function RateModal({ user, onClose, onSubmit }){
+  const [stars, setStars] = useState(5);
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+        <div className="modal-handle"></div>
+        <div className="screen-title" style={{textAlign:'center'}}>Rate {user.name}</div>
+        <div className="screen-sub" style={{textAlign:'center'}}>How did the exchange go?</div>
+        <div className="rating-stars">
+          {[1,2,3,4,5].map(n=>(
+            <span key={n} className={`star ${n<=stars?'filled':''}`} onClick={()=>setStars(n)} style={{cursor:'pointer'}}>★</span>
+          ))}
+        </div>
+        <button className="btn tape block" onClick={()=>onSubmit(stars)}>Submit rating</button>
+      </div>
+    </div>
+  );
+}
+
+function ProfileScreen({ myListings, onOpen, darkMode, setDarkMode, lang, setLang, onGoAdmin, onRatePrompt }){
+  return (
+    <div>
+      <Header title="Profile" />
+      <div className="content" style={{paddingTop:14}}>
+        <div className="seller-row" style={{marginTop:0}}>
+          <div className="avatar" style={{width:50,height:50,fontSize:18}}>{ME.avatar}</div>
+          <div style={{flex:1}}>
+            <div style={{fontWeight:700, fontSize:15}}>{ME.name}</div>
+            <div className="stars">{"★".repeat(Math.round(ME.rating))}{"☆".repeat(5-Math.round(ME.rating))} {ME.rating}</div>
+          </div>
+          <div className="mono" style={{fontSize:11, color:'var(--ink-soft)', textAlign:'right'}}>{ME.hostel}<br/>Rm {ME.room}</div>
+        </div>
+
+        <button className="btn secondary block" style={{marginBottom:16}} onClick={()=>onRatePrompt(USERS[1])}>⭐ Rate a recent exchange</button>
+
+        <div className="section-label">🪪 Verification</div>
+        <div className="admin-row">
+          <div style={{width:44,height:44,borderRadius:6,background:'var(--green)',display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontSize:20}}>✓</div>
+          <div className="info">
+            <div className="t">Student ID verified</div>
+            <div className="s">Verified via QR code scan on Aug 12</div>
+          </div>
+        </div>
+
+        <div className="section-label">📦 Your listings <span className="tag">{myListings.length}</span></div>
+        {myListings.length === 0 ? (
+          <div className="empty-state" style={{padding:'24px 20px'}}><div className="em">📭</div>You haven't listed anything yet.</div>
+        ) : (
+          <div className="grid">
+            {myListings.map(l=><ListingCard key={l.id} listing={l} isFav={false} onOpen={onOpen} onToggleFav={()=>{}} />)}
+          </div>
+        )}
+
+        <div className="section-label" style={{marginTop:22}}>⚙️ Settings</div>
+        <div className="toggle-row">
+          <div style={{fontWeight:600, fontSize:13.5}}>🌙 Dark mode</div>
+          <div className={`switch ${darkMode?'on':''}`} onClick={()=>setDarkMode(!darkMode)}><div className="knob"></div></div>
+        </div>
+        <div className="toggle-row">
+          <div style={{fontWeight:600, fontSize:13.5}}>🔔 Push notifications for matching items</div>
+          <div className="switch on"><div className="knob"></div></div>
+        </div>
+        <div className="toggle-row" style={{border:'none'}}>
+          <div style={{fontWeight:600, fontSize:13.5}}>🌐 Language</div>
+          <select value={lang} onChange={e=>setLang(e.target.value)} style={{padding:'6px 10px', border:'2px solid var(--ink)', borderRadius:8, background:'var(--card)'}}>
+            <option>English</option>
+            <option>हिन्दी</option>
+            <option>தமிழ்</option>
+            <option>Español</option>
+          </select>
+        </div>
+
+        <button className="btn secondary block" style={{marginTop:20}} onClick={onGoAdmin}>🛡️ Open admin dashboard (demo)</button>
+      </div>
+    </div>
+  );
+}
+
+function AdminScreen({ listings, reports, onBack, onRemove, onVerify, onBanUser, onResolveReport }){
+  const [tab, setTab] = useState("reports");
+  return (
+    <div>
+      <Header title="Admin dashboard" onBack={onBack} />
+      <div className="chips-row">
+        {["reports","listings","users"].map(t=>(
+          <button key={t} className={`chip ${tab===t?'active':''}`} onClick={()=>setTab(t)}>
+            {t==='reports'?'🚩 Reports':t==='listings'?'📦 Listings':'👤 Users'}
+          </button>
+        ))}
+      </div>
+      <div className="content" style={{paddingTop:8}}>
+        {tab==='reports' && (
+          reports.length===0 ? <div className="empty-state"><div className="em">✅</div>No open reports. All clear.</div> :
+          reports.map((r,i)=>{
+            const listing = LISTINGS.find(l=>l.id===r.listingId);
+            if (!listing) return null;
+            return (
+              <div key={i} className="admin-row">
+                <img src={listing.images[0]} />
+                <div className="info">
+                  <div className="t">{listing.title}</div>
+                  <div className="s">🚩 {r.reason}{r.note ? ` — "${r.note}"` : ""}</div>
+                </div>
+                <div style={{display:'flex', flexDirection:'column', gap:4}}>
+                  <button className="btn small danger" onClick={()=>onRemove(listing.id, i)}>Remove</button>
+                  <button className="btn small secondary" onClick={()=>onResolveReport(i)}>Dismiss</button>
+                </div>
+              </div>
+            );
+          })
+        )}
+        {tab==='listings' && listings.map(l=>(
+          <div key={l.id} className="admin-row">
+            <img src={l.images[0]} />
+            <div className="info">
+              <div className="t">{l.title}</div>
+              <div className="s">{userById(l.sellerId).name} · {l.status} · {l.hostel}</div>
+            </div>
+            <button className="btn small secondary" onClick={()=>onVerify(l.id)}>✓ Verify</button>
+          </div>
+        ))}
+        {tab==='users' && USERS.map(u=>(
+          <div key={u.id} className="admin-row">
+            <div className="avatar" style={{flexShrink:0}}>{u.avatar}</div>
+            <div className="info">
+              <div className="t">{u.name}</div>
+              <div className="s">{u.hostel} · Room {u.room} · ★{u.rating}</div>
+            </div>
+            <button className="btn small danger" onClick={()=>onBanUser(u.id)}>Ban</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AuthScreen({ onLogin }){
+  const [mode, setMode] = useState("login");
+  const [email, setEmail] = useState("");
+  return (
+    <div style={{padding:'60px 24px 24px', minHeight:'100vh', display:'flex', flexDirection:'column', justifyContent:'center'}}>
+      <div style={{textAlign:'center', marginBottom:36}}>
+        <div style={{fontSize:48, marginBottom:8}}>📦</div>
+        <div className="brand" style={{justifyContent:'center', fontSize:30}}>HostelSwap</div>
+        <div className="screen-sub" style={{marginTop:6}}>Buy, sell, swap, or donate hostel essentials — from students, for students.</div>
+      </div>
+
+      <div className="role-toggle">
+        <button className={`pill-opt ${mode==='login'?'active':''}`} onClick={()=>setMode('login')}>Log in</button>
+        <button className={`pill-opt ${mode==='register'?'active':''}`} onClick={()=>setMode('register')}>Register</button>
+      </div>
+
+      <div className="field">
+        <label>College email</label>
+        <input placeholder="yourname@college.edu" value={email} onChange={e=>setEmail(e.target.value)} />
+      </div>
+      {mode==='register' && (
+        <div className="field">
+          <label>Hostel block</label>
+          <select defaultValue={HOSTELS[0]}>{HOSTELS.map(h=><option key={h}>{h}</option>)}</select>
+        </div>
+      )}
+      <button className="btn tape block" style={{marginTop:8}} onClick={onLogin}>
+        {mode==='login' ? 'Log in' : 'Verify college email & continue'}
+      </button>
+      <div style={{textAlign:'center', margin:'16px 0', color:'var(--ink-soft)', fontSize:12}}>— or —</div>
+      <button className="btn secondary block" onClick={onLogin}>Continue with Google</button>
+      <div className="card-meta" style={{textAlign:'center', marginTop:18}}>
+        🪪 We verify every student with a college email or ID QR code, so listings stay real.
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- root app ---------------- */
+function App(){
+  const [authed, setAuthed] = useState(false);
+  const [tab, setTab] = useState("home");
+  const [listings, setListings] = useState(LISTINGS);
+  const [favs, setFavs] = useState(["l2","l5"]);
+  const [activeCat, setActiveCat] = useState("all");
+  const [query, setQuery] = useState("");
+  const [filters, setFilters] = useState({hostel:"",condition:"",min:"",max:"",status:""});
+  const [showFilters, setShowFilters] = useState(false);
+  const [openListing, setOpenListing] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [chatThreads, setChatThreads] = useState(
+    Object.entries(SEED_MESSAGES).map(([userId, messages])=>({userId, messages}))
+  );
+  const [openThread, setOpenThread] = useState(null);
+  const [reportTarget, setReportTarget] = useState(null);
+  const [reports, setReports] = useState([]);
+  const [darkMode, setDarkMode] = useState(false);
+  const [lang, setLang] = useState("English");
+  const [adminMode, setAdminMode] = useState(false);
+  const [rateTarget, setRateTarget] = useState(null);
+
+  useEffect(()=>{
+    document.body.style.filter = darkMode ? "invert(1) hue-rotate(180deg)" : "none";
+  }, [darkMode]);
+
+  const showToast = (text) => setToast(text);
+
+  const toggleFav = (id) => {
+    setFavs(f => f.includes(id) ? f.filter(x=>x!==id) : [...f, id]);
+  };
+
+  const filteredForFilters = useMemo(()=>{
+    return listings.filter(l=>{
+      if (filters.hostel && l.hostel !== filters.hostel) return false;
+      if (filters.condition && l.condition !== filters.condition) return false;
+      if (filters.status && l.status !== filters.status) return false;
+      if (filters.min && l.price < Number(filters.min)) return false;
+      if (filters.max && l.price > Number(filters.max)) return false;
+      return true;
+    });
+  }, [listings, filters]);
+
+  const publishListing = (data) => {
+    const newListing = {
+      id: "l" + (Date.now()),
+      sellerId: "me",
+      ...data,
+      createdAt: Date.now(),
+    };
+    setListings([newListing, ...listings]);
+    setTab("home");
+    showToast("Listing published!");
+  };
+
+  const markSold = (id) => {
+    setListings(listings.map(l => l.id===id ? {...l, status:"Sold"} : l));
+    showToast("Marked as sold");
+    setOpenListing(null);
+  };
+
+  const sendMessage = (userId, text, isSystem) => {
+    setChatThreads(prev => {
+      const exists = prev.find(t=>t.userId===userId);
+      const newMsg = { from: "me", text, t: Date.now(), system: !!isSystem };
+      if (exists){
+        return prev.map(t=> t.userId===userId ? {...t, messages:[...t.messages, newMsg]} : t);
+      }
+      return [...prev, { userId, messages:[newMsg] }];
+    });
+    // simulate a reply from a seed conversation partner
+    if (!isSystem){
+      setTimeout(()=>{
+        setChatThreads(prev => prev.map(t => t.userId===userId
+          ? {...t, messages:[...t.messages, { from: userId, text: "Sounds good, let me check and get back to you!", t: Date.now() }]}
+          : t));
+      }, 1400);
+    }
+    setTab("chat");
+    setOpenThread(userId);
+    setOpenListing(null);
+  };
+
+  const submitReport = (listing, reason, note) => {
+    setReports([...reports, { listingId: listing.id, reason, note }]);
+    setReportTarget(null);
+    showToast("Report submitted to admins");
+  };
+
+  const removeListing = (id, reportIdx) => {
+    setListings(listings.filter(l=>l.id!==id));
+    setReports(reports.filter((_,i)=>i!==reportIdx));
+    showToast("Listing removed");
+  };
+  const resolveReport = (idx) => setReports(reports.filter((_,i)=>i!==idx));
+  const verifyListing = (id) => showToast("Listing verified ✓");
+  const banUser = (id) => showToast(`${userById(id).name} has been banned`);
+
+  const myListings = listings.filter(l=>l.sellerId==="me");
+
+  if (!authed){
+    return <AuthScreen onLogin={()=>{ setAuthed(true); showToast("Welcome back!"); }} />;
+  }
+
+  if (adminMode){
+    return <AdminScreen listings={listings} reports={reports} onBack={()=>setAdminMode(false)}
+      onRemove={removeListing} onVerify={verifyListing} onBanUser={banUser} onResolveReport={resolveReport} />;
+  }
+
+  if (openThread){
+    const thread = chatThreads.find(t=>t.userId===openThread) || {messages:[]};
+    return (
+      <>
+        <ChatThreadScreen userId={openThread} messages={thread.messages}
+          onBack={()=>setOpenThread(null)} onSend={sendMessage} />
+        {toast && <Toast text={toast} onDone={()=>setToast(null)} />}
+      </>
+    );
+  }
+
+  if (openListing){
+    return (
+      <>
+        <DetailScreen listing={openListing} favs={favs} onToggleFav={toggleFav}
+          onBack={()=>setOpenListing(null)} onMessage={sendMessage} onMarkSold={markSold}
+          onReport={setReportTarget} isMine={openListing.sellerId==="me"} />
+        {reportTarget && <ReportModal listing={reportTarget} onClose={()=>setReportTarget(null)} onSubmit={submitReport} />}
+        {toast && <Toast text={toast} onDone={()=>setToast(null)} />}
+      </>
+    );
+  }
+
+  return (
+    <>
+      {tab==="home" && (
+        <HomeScreen listings={filteredForFilters} favs={favs} onOpen={setOpenListing} onToggleFav={toggleFav}
+          activeCat={activeCat} setActiveCat={setActiveCat} query={query} setQuery={setQuery}
+          onOpenFilters={()=>setShowFilters(true)} />
+      )}
+      {tab==="wishlist" && <WishlistScreen listings={listings} favs={favs} onOpen={setOpenListing} onToggleFav={toggleFav} />}
+      {tab==="sell" && <SellScreen onPublish={publishListing} onBack={()=>setTab("home")} />}
+      {tab==="chat" && <ChatListScreen threads={chatThreads} onOpenThread={setOpenThread} />}
+      {tab==="profile" && (
+        <ProfileScreen myListings={myListings} onOpen={setOpenListing} darkMode={darkMode} setDarkMode={setDarkMode}
+          lang={lang} setLang={setLang} onGoAdmin={()=>setAdminMode(true)} onRatePrompt={setRateTarget} />
+      )}
+
+      <button className="fab" onClick={()=>setTab("sell")}>+</button>
+
+      <div className="bottomnav">
+        <button className={`navbtn ${tab==='home'?'active':''}`} onClick={()=>setTab('home')}><span className="navicon">🏠</span>Home</button>
+        <button className={`navbtn ${tab==='wishlist'?'active':''}`} onClick={()=>setTab('wishlist')}><span className="navicon">❤️</span>Wishlist</button>
+        <button className={`navbtn ${tab==='sell'?'active':''}`} onClick={()=>setTab('sell')}><span className="navicon">📸</span>Sell</button>
+        <button className={`navbtn ${tab==='chat'?'active':''}`} onClick={()=>setTab('chat')}><span className="navicon">💬</span>Chat</button>
+        <button className={`navbtn ${tab==='profile'?'active':''}`} onClick={()=>setTab('profile')}><span className="navicon">👤</span>Profile</button>
+      </div>
+
+      {showFilters && <FiltersModal current={filters} onApply={(f)=>{ setFilters(f); setShowFilters(false); showToast("Filters applied"); }} onClose={()=>setShowFilters(false)} />}
+      {rateTarget && <RateModal user={rateTarget} onClose={()=>setRateTarget(null)} onSubmit={()=>{ setRateTarget(null); showToast("Rating submitted"); }} />}
+      {toast && <Toast text={toast} onDone={()=>setToast(null)} />}
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
